@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
     }
     vector<Point2f> pre_pts = n_pts;
 
-    std::string fileName2 = inputDirectory + "/5.JPG";
+    std::string fileName2 = inputDirectory + "/2.JPG";
     cv::Mat rawImage2 = cv::imread(fileName2.c_str());
     cv::Mat gray2;
     cv::cvtColor(rawImage2, gray2, CV_RGBA2GRAY);
@@ -228,16 +228,17 @@ int main(int argc, char* argv[])
     float score = mpVocabulary->score(BowVec1, BowVec2);
     printf("----------score = %f\n",score);
 
-    BFMatcher matcher(NORM_HAMMING,true);
+    //BFMatcher matcher(NORM_HAMMING,true);
+    FlannBasedMatcher matcher(new flann::LshIndexParams(20,10,2));
     std::vector< DMatch > matches;
-
-    matcher.match( pre_des, forw_des, matches);
+    TicToc t_match;
+    matcher.match( n_des, forw_des, matches);
     printf("matches size %d \n",matches.size());
     sort(matches.begin(), matches.end(), [](const DMatch &a, const DMatch &b)
          {
              return a.distance < b.distance;
          });
-
+    printf("match time %lf\n",t_match.toc());
     for (auto &p : forw_kpts)
     {
         Point2f tmp;
@@ -249,11 +250,11 @@ int main(int argc, char* argv[])
     cv::Mat rawImage21;
     cv::hconcat(rawImage2, rawImage1, rawImage21);
     
-    for (int i = 0; i< 50&&i<matches.size(); i++)
+    for (int i = 0; i<matches.size(); i++)
     {
         
         Point2f forw_pt = forw_kpts[matches[i].trainIdx].pt;
-        Point2f pre_pt = pre_kpts[matches[i].queryIdx].pt;
+        Point2f pre_pt = n_kpts[matches[i].queryIdx].pt;
         pre_pt.x += 480.0;
         cv::line(rawImage21, forw_pt, pre_pt, cv::Scalar(0,255,0), 1, 8, 0);
         //cv::circle(rawImage21, forw_pts[i], 5, cv::Scalar(0,0,255));
@@ -265,12 +266,12 @@ int main(int argc, char* argv[])
     namedWindow("3", CV_WINDOW_NORMAL);
     imshow("3",rawImage21);
 
-    for (auto &p : pre_kpts)
+    for (auto &p : forw_kpts)
     {
         Point2f tmp;
         tmp.x = (float)(int)p.pt.x;
         tmp.y = (float)(int)p.pt.y;
-        cv::circle(rawImage1, tmp, 5, cv::Scalar(0,255,0));
+        cv::circle(rawImage2, tmp, 5, cv::Scalar(0,255,0));
     }
     
     for (auto &p : n_kpts)
@@ -278,7 +279,7 @@ int main(int argc, char* argv[])
         Point2f tmp;
         tmp.x = (float)(int)p.pt.x;
         tmp.y = (float)(int)p.pt.y;
-        cv::circle(rawImage1, tmp, 1, cv::Scalar(255,0,0));
+        cv::circle(rawImage1, tmp, 5, cv::Scalar(255,0,0));
     }
     printf("orb feature %d\n",n_kpts.size());
     namedWindow("2", CV_WINDOW_NORMAL);
